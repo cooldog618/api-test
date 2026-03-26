@@ -1,7 +1,7 @@
 export const API_SERVERS = [
   {
     label: "Local Test Server",
-    value: "http://localhost:3001",
+    value: import.meta.env.VITE_API_SERVER_URL,
   },
 ];
 
