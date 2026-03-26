@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { importPKCS8, SignJWT } from "jose";
 import useAuthStore from "../store/authStore";
+//import { importPKCS8, SignJWT } from "jose";
+import api from "../api/axios";
 import { API_GROUPS, API_SERVERS } from "../data/apiSpecs";
 
 const METHOD_CLASS_MAP = {
@@ -204,7 +205,7 @@ export default function ApiList() {
     setPrivateKeyPem(normalizedPem);
   };
 
-  const handleGenerateJwt = async () => {
+  /*const handleGenerateJwt = async () => {
     try {
       if (!privateKeyPem) {
         alert("Private Key 파일을 먼저 업로드해주세요.");
@@ -241,6 +242,57 @@ export default function ApiList() {
     } catch (error) {
       console.error("JWT generate error:", error);
       alert(`JWT 생성 실패: ${error?.message || "unknown error"}`);
+    } finally {
+      setJwtLoading(false);
+    }
+  };*/
+
+  const handleGenerateJwt = async () => {
+    try {
+      if (!privateKeyPem) {
+        alert("Private Key 파일을 먼저 업로드해주세요.");
+        return;
+      }
+
+      if (!authForm.userID || !authForm.role || !authForm.tenantID) {
+        alert("userID, role, tenantID는 필수입니다.");
+        return;
+      }
+
+      setJwtLoading(true);
+
+      const formData = new FormData();
+      formData.append(
+        "privateKeyFile",
+        new Blob([privateKeyPem], { type: "text/plain" }),
+        privateKeyFileName || "private_pkcs8.pem"
+      );
+
+      formData.append("userID", authForm.userID);
+      formData.append("role", authForm.role);
+      formData.append("tenantID", authForm.tenantID);
+      formData.append("scope", authForm.scope || "");
+      formData.append("expiresIn", authForm.expiresIn || "2h");
+      formData.append("typ", "JWT");
+      formData.append("alg", "RS256");
+
+      const response = await api.post("/auth/generate-jwt", formData);
+
+      const result = response.data;
+
+      if (!result?.success) {
+        throw new Error(result?.message || "JWT 생성 실패");
+      }
+
+      setGeneratedJwt(result.token || "");
+      alert("JWT가 생성되었습니다.");
+    } catch (error) {
+      console.error("JWT generate error:", error);
+      alert(
+        error?.response?.data?.message ||
+          error?.message ||
+          "JWT 생성 실패"
+      );
     } finally {
       setJwtLoading(false);
     }
