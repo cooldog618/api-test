@@ -191,7 +191,17 @@ export default function ApiList() {
     setPrivateKeyFileName(file.name);
 
     const text = await file.text();
-    setPrivateKeyPem(text);
+
+    const normalizedPem = text
+      .replace(/^\uFEFF/, "")   // BOM 제거
+      .replace(/\r\n/g, "\n")   // 줄바꿈 통일
+      .trim();
+
+    console.log("private key first line:", normalizedPem.split("\n")[0]);
+    console.log("private key last line:", normalizedPem.split("\n").slice(-1)[0]);
+    console.log("private key length:", normalizedPem.length);
+
+    setPrivateKeyPem(normalizedPem);
   };
 
   const handleGenerateJwt = async () => {
@@ -207,6 +217,8 @@ export default function ApiList() {
       }
 
       setJwtLoading(true);
+
+      console.log("pem first line before import:", privateKeyPem.split("\n")[0]);
 
       const privateKey = await importPKCS8(privateKeyPem, "RS256");
 
@@ -228,9 +240,7 @@ export default function ApiList() {
       alert("JWT가 생성되었습니다.");
     } catch (error) {
       console.error("JWT generate error:", error);
-      alert(
-        "JWT 생성에 실패했습니다. PKCS#8 형식의 RSA Private Key인지 확인해주세요."
-      );
+      alert(`JWT 생성 실패: ${error?.message || "unknown error"}`);
     } finally {
       setJwtLoading(false);
     }
